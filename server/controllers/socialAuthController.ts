@@ -10,8 +10,8 @@ const getOrCreateZernioProfile = async (user:any): Promise<string> => {
         const result = await zernio.profiles.listProfiles()
         const data = result.data as any;
         const profiles: any[] = Array.isArray(data) ? data : data?.profiles || data?.data || [];
-        if(profiles.length === 0){
-            const pid = profiles[0]._id || profiles[0]
+        if(profiles.length > 0){
+            const pid = profiles[0]._id || profiles[0].id || profiles[0];
             await User.findByIdAndUpdate(user._id,{zernioProfileId:pid})
             return pid;
         }
@@ -33,6 +33,9 @@ const getOrCreateZernioProfile = async (user:any): Promise<string> => {
         throw error;
     }
 }
+
+
+
 
 //Generate Oauth authorization url
 //GET /api/auth/:platform
@@ -66,11 +69,17 @@ export const generateAuthUrl = async(req: AuthRequest,res: Response): Promise<vo
         })
 
     } catch (error: any) {
-       res.status(500).json({
-        message:error?.message || "Server error"
-       })
-    }
+    console.error("GENERATE AUTH URL ERROR:", error);
+    console.error("ERROR MESSAGE:", error?.message);
+    console.error("ERROR RESPONSE:", error?.response);
+    console.error("ERROR DATA:", error?.response?.data);
+
+    res.status(500).json({
+        message: error?.message || "Server error"
+    });
 }
+}
+
 
 //Sync connected accounts from zernio into mongoDB
 //GET /api/auth/sync
@@ -114,7 +123,7 @@ export const syncAccounts = async (req: AuthRequest,res: Response): Promise<void
             )
             syncedAccounts.push(account)
         }
-        res.json(syncAccounts)
+        res.json(syncedAccounts)
     } catch (error: any) {
         res.status(500).json({
             message: error?.message || "server error"
